@@ -78,7 +78,7 @@ SUBMIT_HEADER = {
 }
 
 session = requests.Session()
-# session.verify = False
+session.verify = False
 AUTHOR = 'xlxing@bupt.edu.cn'
 
 
