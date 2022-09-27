@@ -77,8 +77,10 @@ SUBMIT_HEADER = {
     'Accept-Language': 'zh-CN,zh-Hans;q=0.9'
 }
 
+CHECK_API = 'https://jksb.v.zzu.edu.cn/vls6sss/zzujksb.dll/jksb'
+
 session = requests.Session()
-session.verify = False
+# session.verify = False
 AUTHOR = 'xlxing@bupt.edu.cn'
 
 
@@ -92,7 +94,6 @@ class AutoAgent:
         try:
             res = session.get(
                 url=INDEX_API,
-                # verify=False
             )
             res.encoding = 'utf-8'
             result = BeautifulSoup(res.text, 'html.parser')
@@ -116,16 +117,20 @@ class AutoAgent:
                 headers={**LOGIN_HEADER}
             )
             result = BeautifulSoup(res.text, 'html.parser')
+
             s = result.find('script').string
             left = s.find('pid=')
             right = s.find('&sid')
 
-            # assign 'ptopid'
-            SUBMIT_FORM['ptopid'] = s[left: right]
+            # print(s[left+4: right])
 
-            if res.status_code == 200:
-                print('成功登陆...')
+            if res.status_code != 200:
+                print('Status Code', res.status_code)
+                return False
 
+            if left != -1:
+                # assign 'ptopid'
+                self.submit_form['ptopid'] = s[left+4: right]
                 return True
             else:
                 print('登陆失败，请查看用户名和密码是否正确')
@@ -133,8 +138,22 @@ class AutoAgent:
         except Exception as e:
             print(e)
 
-    def check_submit(self):
-        pass
+    def check_submit(self, username, location):
+        try:
+            res = session.get(
+                # url='{}?ptopid={}&sid={}'.format(CHECK_API, self.submit_form['ptopid'], username)
+                url='{}?ptopod={}&sid={}&fun2='.format(CHECK_API, self.submit_form['ptopid'], username)
+            )
+            res.encoding = 'utf-8'
+            result = BeautifulSoup(res.text, 'html.parser')
+            if result.find('title').string == '郑州大学数据中心2021':
+                return False
+            # print(result.find('iframe').get('src'))
+            print(result)
+            print(result.find('span'))
+        except Exception as e:
+            print(e)
+        return False
 
     def submit(self, username, location):
         # fill submit form
@@ -163,12 +182,18 @@ class AutoAgent:
             if res.status_code != 200:
                 print('打卡失败，', res.status_code)
                 return False
+            # res.encoding = 'utf-8'
+            # print(res.text)
             return True
         except Exception as e:
             print(e)
 
     def auto_clock(self, username, password, location):
-        self.login_in(username, password)
+        if self.login_in(username, password):
+            print('成功登陆...')
+        else:
+            return
+        # if self.check_submit(username, password) and self.submit(username, location):
         if self.submit(username, location):
             print('成功打卡...')
 
